@@ -1,21 +1,24 @@
-# Scraper for Instagram search queries
-from googlesearch import search
-import pandas as pd
+import os
+import requests
 
-queries = [
-    "site:instagram.com Shark Tank business made in China",
-    "site:instagram.com American startup product made in India",
-    "site:instagram.com small batch product made in Vietnam"
-]
+SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 
-results = []
+def get_google_results(query):
+    if not SERPAPI_KEY:
+        raise ValueError("SERPAPI_KEY environment variable not set.")
 
-for query in queries:
-    print(f"Searching: {query}")
-    for url in search(query, num_results=20, pause=2.0):
-        if "instagram.com" in url and "/p/" not in url:
-            results.append({"Query": query, "Instagram URL": url})
+    params = {
+        "engine": "google",
+        "q": query,
+        "api_key": SERPAPI_KEY,
+        "num": 10,
+    }
 
-df = pd.DataFrame(results)
-df.to_excel("data/scraped_instagram_links.xlsx", index=False)
-print("✅ Export complete: scraped_instagram_links.xlsx")
+    response = requests.get("https://serpapi.com/search", params=params)
+    data = response.json()
+
+    results = []
+    for result in data.get("organic_results", []):
+        if "instagram.com" in result.get("link", ""):
+            results.append(result["link"])
+    return results
